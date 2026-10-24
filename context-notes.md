@@ -16,4 +16,6 @@
 - **배포는 GitHub Pages** (`manjoung86/fx-app`, main 브랜치 루트, https://manjoung86.github.io/fx-app/). 무료이고 HTTPS라 홈 화면 앱으로 쓰기 좋다. 무료 Pages는 공개 저장소가 필요해서, 커밋 작성자 이메일을 GitHub 비공개 주소(`283163056+manjoung86@users.noreply.github.com`)로 바꿨다. 이 저장소의 로컬 git 설정에만 적용했다.
   - gh 로그인은 Claude 앱 내장 브라우저에서 Google 패스키가 동작하지 않아, 평소 쓰는 Chrome에서 기기 코드로 승인했다.
   - 푸시는 전역 git 설정을 건드리지 않도록 `git -c 'credential.helper=!gh auth git-credential' push`로 한다.
+- **아이콘은 초록 배경에 지폐 세 장을 부채꼴로 펼친 디자인 (10-24 교체).** 사용자가 다른 앱("Currency")의 아이콘 느낌을 원했다. 남의 아이콘을 복제하지 않도록 같은 분위기로 새로 그렸다. 맨 앞 지폐는 ₩, 뒤 두 장은 €·$이고, 뒤 지폐는 아래 끝을 축으로 ±32° 펼치고 기호를 위쪽에 둬서 가려지지 않게 했다. 원본은 `icon.svg`, `qlmanage`로 512px 렌더 후 `sips`로 180px을 만든다.
+  - 아이폰은 홈 화면에 추가하는 순간의 아이콘을 저장하므로, 아이콘을 바꾸면 홈 화면 아이콘을 지우고 다시 추가해야 반영된다.
 - **파일 하나(index.html)에 CSS·JS를 모두 넣는다.** 외부 라이브러리 없이 그래프도 SVG로 직접 그린다. 설정(즐겨찾기, 마지막 통화쌍)은 localStorage에 저장한다.
