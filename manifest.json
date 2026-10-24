@@ -1,6 +1,6 @@
 {
-  "name": "환율",
-  "short_name": "환율",
+  "name": "Exchange",
+  "short_name": "Exchange",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
