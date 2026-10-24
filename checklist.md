@@ -18,10 +18,10 @@
 - [x] 무료 API 조사와 방식 결정
 - [x] 중계 서버 코드 (`worker/`), 시험 빌드, 가짜 키로 오류·Origin 처리 확인
 - [x] 앱 연결 코드 (`LIVE_API`), 가짜 응답·실패 상황 시험
-- [ ] Open Exchange Rates 가입·App ID 발급 (사용자)
-- [ ] Cloudflare 가입 (사용자)
-- [ ] wrangler 로그인, KV 생성, 키 등록, 배포
-- [ ] `LIVE_API`에 Worker 주소 넣고 실제 값 확인 후 배포
+- [x] Open Exchange Rates 가입·App ID 발급 (사용자)
+- [x] Cloudflare 가입·이메일 인증 (사용자)
+- [x] wrangler 로그인, KV 생성, 키 등록(사용자가 터미널에 직접), 배포 → https://fx-rates.fx-rates-worker.workers.dev
+- [x] `LIVE_API`에 Worker 주소 넣고 실제 값 확인 후 배포
 
 ## 기존
 - [x] 아이폰 홈 화면에 아이콘 추가 (iPhone 미러링으로 진행, 웹 앱으로 열기 켬, 주소창 없이 열리는 것 확인)

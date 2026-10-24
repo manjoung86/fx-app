@@ -6,7 +6,7 @@ compatibility_date = "2026-10-01"
 [triggers]
 crons = ["5 * * * *"]
 
-# id는 `wrangler kv namespace create RATES` 결과로 채운다
+# `wrangler kv namespace create RATES`로 만든 저장 공간
 [[kv_namespaces]]
 binding = "RATES"
-id = "REPLACE_WITH_KV_ID"
+id = "e4417bcc1c9049759991b0af04c3cec6"

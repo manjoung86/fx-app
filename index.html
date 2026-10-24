@@ -261,7 +261,7 @@
 <script>
 const API = 'https://api.frankfurter.dev/v2';
 // 1시간마다 갱신되는 최신 환율 중계 서버 (worker/ 폴더). 비어 있거나 실패하면 일별 기준환율만 쓴다
-const LIVE_API = '';
+const LIVE_API = 'https://fx-rates.fx-rates-worker.workers.dev/';
 const RANGES = [7, 30, 90, 180, 365, 730];
 
 const KO_NAMES = {

@@ -27,4 +27,6 @@
   - 허용 Origin은 `manjoung86.github.io`와 로컬 미리보기(`localhost:8765`)뿐이다. 브라우저 차원의 가벼운 제한이고, 남이 직접 호출해도 KV 값만 돌려주므로 한도가 닳지 않는다.
   - 앱은 일별 시계열의 마지막 날을 최신 값으로 바꾸거나(같은 날짜) 오늘 날짜로 덧붙인다(`mergeLive`). 응답이 USD 기준이라 교차 환율 = quote/base. 중계가 실패하면 조용히 일별 기준환율만 쓴다. `LIVE_API`가 빈 문자열이면 기능이 꺼진다.
   - 추이 그래프(1주~2년)는 그대로 Frankfurter 일별 데이터다.
+  - 배포: Worker `fx-rates` → https://fx-rates.fx-rates-worker.workers.dev , KV `RATES`(id는 wrangler.toml), 비밀 값 `OXR_APP_ID`. Cloudflare·OXR 계정은 manjoung86@gmail.com. Workers는 Cloudflare 이메일 인증 전에는 배포가 거절된다(code 10034).
+  - 다시 배포: `cd worker && npx wrangler deploy` (Node는 Homebrew로 설치, wrangler는 worker/node_modules). 키를 바꾸려면 `npx wrangler secret put OXR_APP_ID`를 사용자가 터미널에서 직접 입력.
 - **파일 하나(index.html)에 CSS·JS를 모두 넣는다.** 외부 라이브러리 없이 그래프도 SVG로 직접 그린다. 설정(즐겨찾기, 마지막 통화쌍)은 localStorage에 저장한다.
