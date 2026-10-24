@@ -123,10 +123,11 @@
   .star svg { width: 26px; height: 26px; }
 
   /* 계산기 */
-  .calc { margin-top: 18px; display: grid; gap: 8px; }
-  .calc label { display: flex; align-items: center; background: var(--field); border-radius: 12px; height: 52px; padding: 0 14px; gap: 10px; }
+  /* Safari는 input 기본 너비가 커서 grid 칸을 밀어내므로 minmax(0, 1fr)과 width:100%로 묶는다 */
+  .calc { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; }
+  .calc label { display: flex; align-items: center; background: var(--field); border-radius: 12px; height: 52px; padding: 0 14px; gap: 10px; min-width: 0; }
   .calc .calc-code { font-weight: 600; color: var(--text-secondary); width: 40px; flex: none; }
-  .calc input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 20px; font-weight: 600; text-align: right; outline: none; font-variant-numeric: tabular-nums; }
+  .calc input { flex: 1; width: 100%; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 20px; font-weight: 600; text-align: right; outline: none; font-variant-numeric: tabular-nums; }
 
   /* 기간 선택 */
   .seg { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--field); border-radius: 10px; padding: 2px; margin-bottom: 14px; }
