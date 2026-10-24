@@ -13,4 +13,7 @@
 - **즐겨찾기는 같은 기준 통화끼리 묶어 요청한다.** 처음 계획한 EUR 경유 교차환율보다 단순하고 값이 API와 그대로 일치한다.
 - **그래프 툴팁은 그래프 위쪽에 비워 둔 자리(48px)에 띄운다.** 처음엔 그래프 밖 위로 띄웠더니 기간 버튼을 가렸다.
 - **로컬 확인은 `.claude/launch.json`의 `fx-app` 서버(python http.server, 8765)로 한다.** 파일을 직접 열면 data: 주소가 되어 localStorage가 막힌다. 이때도 앱은 저장만 안 될 뿐 정상 동작하는 것을 확인했다.
+- **배포는 GitHub Pages** (`manjoung86/fx-app`, main 브랜치 루트, https://manjoung86.github.io/fx-app/). 무료이고 HTTPS라 홈 화면 앱으로 쓰기 좋다. 무료 Pages는 공개 저장소가 필요해서, 커밋 작성자 이메일을 GitHub 비공개 주소(`283163056+manjoung86@users.noreply.github.com`)로 바꿨다. 이 저장소의 로컬 git 설정에만 적용했다.
+  - gh 로그인은 Claude 앱 내장 브라우저에서 Google 패스키가 동작하지 않아, 평소 쓰는 Chrome에서 기기 코드로 승인했다.
+  - 푸시는 전역 git 설정을 건드리지 않도록 `git -c 'credential.helper=!gh auth git-credential' push`로 한다.
 - **파일 하나(index.html)에 CSS·JS를 모두 넣는다.** 외부 라이브러리 없이 그래프도 SVG로 직접 그린다. 설정(즐겨찾기, 마지막 통화쌍)은 localStorage에 저장한다.
