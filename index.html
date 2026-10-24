@@ -23,7 +23,6 @@
     --text-secondary: #52514e;
     --text-muted: #8a8984;
     --line: #e4e3df;
-    --grid: #ecebe7;
     --field: #f2f2f7;
     --accent: #2a78d6;
     --series: #2a78d6;
@@ -40,7 +39,6 @@
       --text-secondary: #c3c2b7;
       --text-muted: #8f8e86;
       --line: #2e2e2c;
-      --grid: #2a2a28;
       --field: #262624;
       --accent: #3987e5;
       --series: #3987e5;
@@ -57,7 +55,6 @@
     --text-secondary: #c3c2b7;
     --text-muted: #8f8e86;
     --line: #2e2e2c;
-    --grid: #2a2a28;
     --field: #262624;
     --accent: #3987e5;
     --series: #3987e5;
@@ -130,23 +127,28 @@
   .calc input { flex: 1; width: 100%; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 20px; font-weight: 600; text-align: right; outline: none; font-variant-numeric: tabular-nums; }
 
   /* 기간 선택 */
-  .seg { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--field); border-radius: 10px; padding: 2px; margin-bottom: 14px; }
+  .seg { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--field); border-radius: 10px; padding: 2px; margin-top: 12px; }
   .seg button { height: 32px; border-radius: 8px; font-size: 14px; color: var(--text-secondary); }
   .seg button[aria-pressed="true"] { background: var(--card); color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
 
   /* 그래프 */
-  .chart-wrap { position: relative; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-  .chart-wrap svg { display: block; width: 100%; height: 236px; overflow: visible; }
-  .chart-wrap .axis-label { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
-  .tip { position: absolute; top: 0; transform: translateX(-50%); background: var(--text-primary); color: var(--card); border-radius: 8px; padding: 4px 8px; font-size: 12px; white-space: nowrap; pointer-events: none; display: none; text-align: center; line-height: 1.3; }
+  .chart-head { margin-bottom: 4px; }
+  .chart-title { font-size: 24px; font-weight: 700; letter-spacing: -0.3px; }
+  .chart-value { display: flex; align-items: baseline; gap: 10px; margin-top: 2px; font-size: 22px; font-weight: 600; }
+  .chart-value #chartValue { color: var(--text-secondary); }
+  .chart-value #chartChange { font-size: 20px; }
+  .chart-head .arrow-up { color: var(--up); }
+  .chart-head .arrow-down { color: var(--down); }
+  .chart-date { font-size: 13px; color: var(--text-muted); margin-top: 2px; min-height: 18px; }
+  /* 그래프는 카드 좌우 여백을 넘어 카드 끝까지 채운다 */
+  .chart-wrap { position: relative; margin: 0 -16px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .chart-wrap svg { display: block; width: 100%; height: 240px; overflow: visible; }
+  .tip { position: absolute; top: 0; transform: translate(-50%, -100%); background: var(--text-primary); color: var(--card); border-radius: 8px; padding: 4px 8px; font-size: 12px; white-space: nowrap; pointer-events: none; display: none; text-align: center; line-height: 1.3; }
   .tip b { font-size: 14px; }
-  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
   .stats div { display: flex; flex-direction: column; }
   .stats span { font-size: 12px; color: var(--text-muted); }
   .stats b { font-size: 15px; font-weight: 600; }
-  .stats .sub { font-size: 12px; font-weight: 400; color: var(--text-secondary); }
-  .stats .arrow-up { color: var(--up); }
-  .stats .arrow-down { color: var(--down); }
   .fav .arrow-up { color: var(--up); }
   .fav .arrow-down { color: var(--down); }
   details { margin-top: 12px; }
@@ -222,22 +224,27 @@
     </div>
   </section>
 
-  <div class="section-title"><h2>추이</h2></div>
   <section class="card">
-    <div class="seg" id="ranges">
-      <button data-days="7">1주</button>
-      <button data-days="30">1개월</button>
-      <button data-days="90">3개월</button>
-      <button data-days="365">1년</button>
+    <div class="chart-head">
+      <div class="chart-title" id="chartTitle"></div>
+      <div class="chart-value num"><span id="chartValue">–</span><span id="chartChange"></span></div>
+      <div class="chart-date num" id="chartDate"></div>
     </div>
     <div class="chart-wrap" id="chartWrap">
       <svg id="chart" aria-label="환율 추이 그래프"></svg>
       <div class="tip" id="tip"></div>
     </div>
+    <div class="seg" id="ranges">
+      <button data-days="7">1주</button>
+      <button data-days="30">1달</button>
+      <button data-days="90">3달</button>
+      <button data-days="180">6달</button>
+      <button data-days="365">1년</button>
+      <button data-days="730">2년</button>
+    </div>
     <div class="stats num">
       <div><span>기간 최고</span><b id="stHigh">–</b></div>
       <div><span>기간 최저</span><b id="stLow">–</b></div>
-      <div><span>기간 변동</span><b id="stChange">–</b></div>
     </div>
     <details>
       <summary>날짜별 환율 보기</summary>
@@ -253,7 +260,7 @@
 
 <script>
 const API = 'https://api.frankfurter.dev/v2';
-const RANGES = [7, 30, 90, 365];
+const RANGES = [7, 30, 90, 180, 365, 730];
 
 const KO_NAMES = {
   KRW: '대한민국 원', USD: '미국 달러', JPY: '일본 엔', EUR: '유로', CNY: '중국 위안', GBP: '영국 파운드',
@@ -378,7 +385,7 @@ function renderPairHeader() {
   $('star').setAttribute('aria-pressed', on);
 }
 
-// mode: 'full' = ▲ 1.23 (+0.10%), 'pct' = ▲ 0.10%, 'stack' = 두 줄
+// mode: 'full' = ▲ 1.23 (+0.10%), 'pct' = ▲ 0.10%
 function deltaHTML(cur, prev, mode = 'full') {
   if (prev == null) return '';
   const diff = cur - prev;
@@ -388,7 +395,6 @@ function deltaHTML(cur, prev, mode = 'full') {
   const arrow = `<span class="${up ? 'arrow-up' : 'arrow-down'}">${up ? '▲' : '▼'}</span>`;
   const sign = up ? '+' : '−';
   if (mode === 'pct') return `${arrow} ${pctText}`;
-  if (mode === 'stack') return `${arrow} ${fmtRate(Math.abs(diff))}<br><span class="sub">${sign}${pctText}</span>`;
   return `${arrow} ${fmtRate(Math.abs(diff))} (${sign}${pctText})`;
 }
 
@@ -405,7 +411,7 @@ async function loadPair() {
   }
   $('rateBig').textContent = '–';
   $('rateDelta').textContent = '';
-  const rows = await getJSON(`${API}/rates?base=${base}&quotes=${quote}&from=${isoDaysAgo(366)}`);
+  const rows = await getJSON(`${API}/rates?base=${base}&quotes=${quote}&from=${isoDaysAgo(731)}`);
   if (state.base !== base || state.quote !== quote) return; // 그사이 다른 통화로 바뀜
   state.series = rows.map(r => ({ date: r.date, rate: r.rate * unitOf(base) }));
   const n = state.series.length;
@@ -457,13 +463,6 @@ function renderCalc(from) {
 }
 
 // ---------- 추이 그래프 ----------
-function niceStep(range, count) {
-  const raw = range / count;
-  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
-  const r = raw / mag;
-  return (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
-}
-
 function visiblePoints() {
   const from = isoDaysAgo(state.days);
   return state.series.filter(p => p.date >= from);
@@ -473,59 +472,61 @@ function renderChart() {
   for (const b of $('ranges').children) b.setAttribute('aria-pressed', Number(b.dataset.days) === state.days);
   const svg = $('chart');
   const pts = visiblePoints();
-  $('tip').style.display = 'none';
+  hideCross();
+  $('chartTitle').textContent = `${unitOf(state.base)} ${state.base}당 ${state.quote}`;
   if (pts.length < 2) {
     svg.innerHTML = '';
-    for (const id of ['stHigh', 'stLow', 'stChange']) $(id).textContent = '–';
-    $('dailyTable').innerHTML = '';
+    svg._geom = null;
+    for (const id of ['stHigh', 'stLow', 'chartValue']) $(id).textContent = '–';
+    for (const id of ['chartChange', 'chartDate', 'dailyTable']) $(id).innerHTML = '';
     return;
   }
 
-  // 위쪽 40px은 터치할 때 뜨는 툴팁 자리
-  const W = svg.clientWidth || 340, H = 236;
-  const pad = { l: 4, r: 52, t: 48, b: 22 };
+  // 축·눈금 없이 선과 면만 그린다. 위쪽 여백은 터치 툴팁 자리
+  const W = svg.clientWidth || 360, H = 240;
+  const pad = { l: 6, r: 6, t: 56, b: 10 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
   const rates = pts.map(p => p.rate);
-  let lo = Math.min(...rates), hi = Math.max(...rates);
-  if (hi === lo) { hi += Math.abs(hi) * 0.001 || 1; lo -= Math.abs(lo) * 0.001 || 1; }
-  const step = niceStep(hi - lo, 3);
-  const y0 = Math.floor(lo / step) * step, y1 = Math.ceil(hi / step) * step;
+  const lo = Math.min(...rates), hi = Math.max(...rates);
+  const span = (hi - lo) || Math.abs(hi) * 0.002 || 1;
+  const y0 = lo - span * 0.08, y1 = hi + span * 0.08;
   const x = i => pad.l + i / (pts.length - 1) * pw;
   const y = v => pad.t + (1 - (v - y0) / (y1 - y0)) * ph;
-  const tickDigits = Math.max(0, -Math.floor(Math.log10(step)));
-
-  let grid = '';
-  for (let v = y0; v <= y1 + step / 2; v += step) {
-    grid += `<line x1="${pad.l}" x2="${pad.l + pw}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/>`;
-    grid += `<text class="axis-label" x="${W - 2}" y="${y(v) + 4}" text-anchor="end">${nf(tickDigits, tickDigits).format(v)}</text>`;
-  }
-  const xl = `<text class="axis-label" x="${pad.l}" y="${H - 4}">${fmtDate(pts[0].date)}</text>`
-           + `<text class="axis-label" x="${pad.l + pw}" y="${H - 4}" text-anchor="end">${fmtDate(pts.at(-1).date)}</text>`;
   const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.rate).toFixed(1)}`).join('');
-  const area = `${line}L${x(pts.length - 1).toFixed(1)},${pad.t + ph}L${pad.l},${pad.t + ph}Z`;
+  const area = `${line}L${x(pts.length - 1).toFixed(1)},${H}L${pad.l},${H}Z`;
 
   svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
   svg.innerHTML = `
     <defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="var(--series)" stop-opacity="0.18"/>
-      <stop offset="1" stop-color="var(--series)" stop-opacity="0"/>
+      <stop offset="0" stop-color="var(--series)" stop-opacity="0.32"/>
+      <stop offset="1" stop-color="var(--series)" stop-opacity="0.02"/>
     </linearGradient></defs>
-    ${grid}${xl}
     <path d="${area}" fill="url(#fill)"/>
-    <path d="${line}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${line}" fill="none" stroke="var(--series)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
     <g id="cross" style="display:none">
-      <line id="crossLine" y1="${pad.t}" y2="${pad.t + ph}" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3 3"/>
-      <circle id="crossDot" r="5" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>
-    </g>
-    <circle cx="${x(pts.length - 1)}" cy="${y(pts.at(-1).rate)}" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>`;
+      <line id="crossLine" y1="${pad.t - 6}" y2="${H}" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3 3"/>
+      <circle id="crossDot" r="6" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>
+    </g>`;
   svg._geom = { pts, x, y, pad, pw, W };
 
-  const first = pts[0].rate, last = pts.at(-1).rate;
-  $('stHigh').textContent = fmtRate(Math.max(...rates));
-  $('stLow').textContent = fmtRate(Math.min(...rates));
-  $('stChange').innerHTML = deltaHTML(last, first, 'stack');
+  $('stHigh').textContent = fmtRate(hi);
+  $('stLow').textContent = fmtRate(lo);
   $('dailyTable').innerHTML = pts.slice().reverse()
     .map(p => `<tr><td>${fmtDate(p.date, true)}</td><td>${fmtRate(p.rate)}</td></tr>`).join('');
+  renderChartHead();
+}
+
+// 그래프 위 큰 숫자: 평소엔 마지막 값과 기간 변동률, 터치 중엔 그 날짜의 값과 기간 시작 대비 변동률
+function renderChartHead(i) {
+  const g = $('chart')._geom;
+  if (!g) return;
+  const pts = g.pts;
+  const p = i == null ? pts.at(-1) : pts[i];
+  $('chartValue').textContent = fmtRate(p.rate);
+  $('chartChange').innerHTML = deltaHTML(p.rate, pts[0].rate, 'pct');
+  $('chartDate').textContent = i == null
+    ? `${fmtDate(pts[0].date, true)} – ${fmtDate(pts.at(-1).date, true)}`
+    : fmtDate(p.date, true);
 }
 
 function showCross(clientX) {
@@ -542,17 +543,21 @@ function showCross(clientX) {
   $('crossLine').setAttribute('x2', cx);
   $('crossDot').setAttribute('cx', cx);
   $('crossDot').setAttribute('cy', cy);
+  // 툴팁은 짚은 점 바로 위에 띄운다
   const tip = $('tip');
   tip.innerHTML = `${fmtDate(p.date, true)}<br><b>${fmtRate(p.rate)}</b>`;
   tip.style.display = 'block';
-  const px = cx * rect.width / g.W;
+  const scale = rect.width / g.W;
   const half = tip.offsetWidth / 2;
-  tip.style.left = Math.max(half, Math.min(rect.width - half, px)) + 'px';
+  tip.style.left = Math.max(half + 4, Math.min(rect.width - half - 4, cx * scale)) + 'px';
+  tip.style.top = Math.max(tip.offsetHeight + 2, cy * scale - 12) + 'px';
+  renderChartHead(i);
 }
 function hideCross() {
   $('tip').style.display = 'none';
   const c = document.getElementById('cross');
   if (c) c.style.display = 'none';
+  renderChartHead();
 }
 
 // ---------- 즐겨찾기 ----------
