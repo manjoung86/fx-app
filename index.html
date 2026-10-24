@@ -1,0 +1,683 @@
+<!doctype html>
+<!-- 아이폰 홈 화면에 추가해서 쓰는 개인용 환율 웹앱 (조회·계산기·추이 그래프·즐겨찾기) -->
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>환율</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="환율">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.json">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f2f2f7;
+    --card: #ffffff;
+    --text-primary: #0b0b0b;
+    --text-secondary: #52514e;
+    --text-muted: #8a8984;
+    --line: #e4e3df;
+    --grid: #ecebe7;
+    --field: #f2f2f7;
+    --accent: #2a78d6;
+    --series: #2a78d6;
+    --up: #d03b3b;
+    --down: #2a78d6;
+    --danger: #d03b3b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #000000;
+      --card: #1a1a19;
+      --text-primary: #f0efec;
+      --text-secondary: #c3c2b7;
+      --text-muted: #8f8e86;
+      --line: #2e2e2c;
+      --grid: #2a2a28;
+      --field: #262624;
+      --accent: #3987e5;
+      --series: #3987e5;
+      --up: #e66767;
+      --down: #3987e5;
+      --danger: #e66767;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #000000;
+    --card: #1a1a19;
+    --text-primary: #f0efec;
+    --text-secondary: #c3c2b7;
+    --text-muted: #8f8e86;
+    --line: #2e2e2c;
+    --grid: #2a2a28;
+    --field: #262624;
+    --accent: #3987e5;
+    --series: #3987e5;
+    --up: #e66767;
+    --down: #3987e5;
+    --danger: #e66767;
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.4;
+    -webkit-tap-highlight-color: transparent;
+  }
+  main {
+    max-width: 520px;
+    margin: 0 auto;
+    padding: calc(env(safe-area-inset-top) + 12px) 16px calc(env(safe-area-inset-bottom) + 32px);
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  header { display: flex; align-items: flex-end; justify-content: space-between; margin: 8px 4px 14px; }
+  h1 { font-size: 32px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+  .asof { font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+  .icon-btn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 16px; color: var(--accent); }
+  .icon-btn:active { background: var(--field); }
+  .icon-btn svg { width: 20px; height: 20px; }
+  .spin svg { animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  .section-title { display: flex; justify-content: space-between; align-items: center; margin: 22px 4px 8px; }
+  .section-title h2 { font-size: 20px; margin: 0; font-weight: 700; }
+  .text-btn { color: var(--accent); font-size: 16px; padding: 6px 4px; }
+
+  /* 통화쌍 선택 */
+  .pair { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+  .picker { position: relative; background: var(--field); border-radius: 12px; height: 56px; display: flex; align-items: center; padding: 0 12px; gap: 8px; min-width: 0; }
+  .picker .flag { font-size: 24px; line-height: 1; }
+  .picker .code { font-weight: 700; font-size: 18px; }
+  .picker .name { font-size: 12px; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .picker .labels { display: flex; flex-direction: column; min-width: 0; }
+  .picker select { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; font-size: 16px; }
+  .swap { width: 40px; height: 40px; border-radius: 20px; background: var(--field); display: grid; place-items: center; color: var(--accent); }
+  .swap:active { opacity: 0.6; }
+  .swap svg { width: 20px; height: 20px; }
+
+  .rate-row { display: flex; justify-content: space-between; align-items: flex-start; margin-top: 18px; gap: 8px; }
+  .rate-unit { font-size: 14px; color: var(--text-secondary); }
+  .rate-big { font-size: 36px; font-weight: 700; letter-spacing: -0.5px; line-height: 1.15; word-break: break-all; }
+  .rate-big small { font-size: 18px; font-weight: 600; color: var(--text-secondary); margin-left: 4px; }
+  .delta { font-size: 14px; margin-top: 4px; color: var(--text-secondary); }
+  .delta .arrow-up { color: var(--up); }
+  .delta .arrow-down { color: var(--down); }
+  .star { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 20px; color: var(--text-muted); flex: none; }
+  .star.on { color: #eda100; }
+  .star svg { width: 26px; height: 26px; }
+
+  /* 계산기 */
+  .calc { margin-top: 18px; display: grid; gap: 8px; }
+  .calc label { display: flex; align-items: center; background: var(--field); border-radius: 12px; height: 52px; padding: 0 14px; gap: 10px; }
+  .calc .calc-code { font-weight: 600; color: var(--text-secondary); width: 40px; flex: none; }
+  .calc input { flex: 1; min-width: 0; border: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 20px; font-weight: 600; text-align: right; outline: none; font-variant-numeric: tabular-nums; }
+
+  /* 기간 선택 */
+  .seg { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--field); border-radius: 10px; padding: 2px; margin-bottom: 14px; }
+  .seg button { height: 32px; border-radius: 8px; font-size: 14px; color: var(--text-secondary); }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
+
+  /* 그래프 */
+  .chart-wrap { position: relative; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+  .chart-wrap svg { display: block; width: 100%; height: 236px; overflow: visible; }
+  .chart-wrap .axis-label { fill: var(--text-muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .tip { position: absolute; top: 0; transform: translateX(-50%); background: var(--text-primary); color: var(--card); border-radius: 8px; padding: 4px 8px; font-size: 12px; white-space: nowrap; pointer-events: none; display: none; text-align: center; line-height: 1.3; }
+  .tip b { font-size: 14px; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .stats div { display: flex; flex-direction: column; }
+  .stats span { font-size: 12px; color: var(--text-muted); }
+  .stats b { font-size: 15px; font-weight: 600; }
+  .stats .sub { font-size: 12px; font-weight: 400; color: var(--text-secondary); }
+  .stats .arrow-up { color: var(--up); }
+  .stats .arrow-down { color: var(--down); }
+  .fav .arrow-up { color: var(--up); }
+  .fav .arrow-down { color: var(--down); }
+  details { margin-top: 12px; }
+  summary { font-size: 14px; color: var(--accent); cursor: pointer; }
+  .daily { max-height: 260px; overflow-y: auto; margin-top: 8px; font-size: 14px; }
+  .daily table { width: 100%; border-collapse: collapse; }
+  .daily td { padding: 6px 2px; border-bottom: 1px solid var(--line); }
+  .daily td:last-child { text-align: right; }
+
+  /* 즐겨찾기 */
+  .favs { padding: 0 16px; }
+  .fav { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); width: 100%; text-align: left; cursor: pointer; }
+  .fav:last-child { border-bottom: 0; }
+  .fav .flags { font-size: 22px; flex: none; }
+  .fav .pname { flex: 1; min-width: 0; }
+  .fav .pname b { display: block; font-size: 16px; }
+  .fav .pname span { font-size: 12px; color: var(--text-secondary); }
+  .fav .pval { text-align: right; }
+  .fav .pval b { display: block; font-size: 17px; font-weight: 600; }
+  .fav .pval span { font-size: 13px; color: var(--text-secondary); }
+  .fav .del { width: 28px; height: 28px; border-radius: 14px; background: var(--danger); color: #fff; display: none; place-items: center; flex: none; font-size: 18px; line-height: 1; }
+  .editing .fav .del { display: grid; }
+  .empty { color: var(--text-muted); font-size: 14px; padding: 16px 0; text-align: center; }
+
+  .error { background: var(--card); border-radius: 12px; padding: 12px 16px; color: var(--danger); font-size: 14px; margin-bottom: 16px; display: none; }
+  .note { font-size: 12px; color: var(--text-muted); margin: 8px 4px 0; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>환율</h1>
+    <div class="asof"><span id="asof">불러오는 중</span>
+      <button class="icon-btn" id="refresh" aria-label="새로고침">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="error" id="error"></div>
+
+  <section class="card">
+    <div class="pair">
+      <div class="picker">
+        <span class="flag" id="baseFlag"></span>
+        <span class="labels"><span class="code" id="baseCode"></span><span class="name" id="baseName"></span></span>
+        <select id="baseSel" aria-label="기준 통화"></select>
+      </div>
+      <button class="swap" id="swap" aria-label="통화 바꾸기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="m17 20 4-4-4-4"/><path d="M21 16H7"/></svg>
+      </button>
+      <div class="picker">
+        <span class="flag" id="quoteFlag"></span>
+        <span class="labels"><span class="code" id="quoteCode"></span><span class="name" id="quoteName"></span></span>
+        <select id="quoteSel" aria-label="대상 통화"></select>
+      </div>
+    </div>
+
+    <div class="rate-row">
+      <div>
+        <div class="rate-unit" id="rateUnit"></div>
+        <div class="rate-big num" id="rateBig">–</div>
+        <div class="delta num" id="rateDelta"></div>
+      </div>
+      <button class="star" id="star" aria-label="즐겨찾기">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4-4.7-4.4 6.4-.8z"/></svg>
+      </button>
+    </div>
+
+    <div class="calc">
+      <label><span class="calc-code" id="calcBaseCode"></span><input id="calcBase" inputmode="decimal" autocomplete="off"></label>
+      <label><span class="calc-code" id="calcQuoteCode"></span><input id="calcQuote" inputmode="decimal" autocomplete="off"></label>
+    </div>
+  </section>
+
+  <div class="section-title"><h2>추이</h2></div>
+  <section class="card">
+    <div class="seg" id="ranges">
+      <button data-days="7">1주</button>
+      <button data-days="30">1개월</button>
+      <button data-days="90">3개월</button>
+      <button data-days="365">1년</button>
+    </div>
+    <div class="chart-wrap" id="chartWrap">
+      <svg id="chart" aria-label="환율 추이 그래프"></svg>
+      <div class="tip" id="tip"></div>
+    </div>
+    <div class="stats num">
+      <div><span>기간 최고</span><b id="stHigh">–</b></div>
+      <div><span>기간 최저</span><b id="stLow">–</b></div>
+      <div><span>기간 변동</span><b id="stChange">–</b></div>
+    </div>
+    <details>
+      <summary>날짜별 환율 보기</summary>
+      <div class="daily"><table class="num" id="dailyTable"></table></div>
+    </details>
+  </section>
+
+  <div class="section-title"><h2>즐겨찾기</h2><button class="text-btn" id="editFavs">편집</button></div>
+  <section class="card favs" id="favs"></section>
+
+  <p class="note">국제 기준환율(Frankfurter)이며 은행 창구·송금 환율과는 차이가 있어요.</p>
+</main>
+
+<script>
+const API = 'https://api.frankfurter.dev/v2';
+const RANGES = [7, 30, 90, 365];
+
+const KO_NAMES = {
+  KRW: '대한민국 원', USD: '미국 달러', JPY: '일본 엔', EUR: '유로', CNY: '중국 위안', GBP: '영국 파운드',
+  HKD: '홍콩 달러', TWD: '대만 달러', SGD: '싱가포르 달러', THB: '태국 바트', VND: '베트남 동',
+  PHP: '필리핀 페소', IDR: '인도네시아 루피아', MYR: '말레이시아 링깃', INR: '인도 루피', AUD: '호주 달러',
+  NZD: '뉴질랜드 달러', CAD: '캐나다 달러', CHF: '스위스 프랑', SEK: '스웨덴 크로나', NOK: '노르웨이 크로네',
+  DKK: '덴마크 크로네', MXN: '멕시코 페소', BRL: '브라질 헤알', RUB: '러시아 루블', TRY: '튀르키예 리라',
+  AED: '아랍에미리트 디르함', SAR: '사우디 리얄', ZAR: '남아공 랜드', MNT: '몽골 투그릭', KZT: '카자흐스탄 텡게',
+  PLN: '폴란드 즐로티', CZK: '체코 코루나', HUF: '헝가리 포린트', ILS: '이스라엘 셰켈', MOP: '마카오 파타카'
+};
+const POPULAR = ['KRW', 'USD', 'JPY', 'EUR', 'CNY', 'GBP', 'HKD', 'TWD', 'VND', 'THB', 'SGD', 'PHP', 'AUD', 'CAD'];
+const DEFAULT_FAVS = [['USD', 'KRW'], ['JPY', 'KRW'], ['EUR', 'KRW'], ['CNY', 'KRW']];
+// 국내 은행 고시처럼 100단위로 보여주는 통화
+const UNIT = { JPY: 100, VND: 100, IDR: 100 };
+const unitOf = code => UNIT[code] || 1;
+
+// 설정 저장 — 사생활 보호 모드 등에서 실패해도 앱은 동작해야 한다
+const store = {
+  get(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; } },
+  set(key, v) { try { localStorage.setItem(key, JSON.stringify(v)); } catch {} }
+};
+
+const state = {
+  base: store.get('fx.base', 'USD'),
+  quote: store.get('fx.quote', 'KRW'),
+  days: store.get('fx.days', 30),
+  favs: store.get('fx.favs', DEFAULT_FAVS),
+  currencies: {},
+  series: [],        // 현재 통화쌍의 1년치 [{date, rate}]
+  lastLoad: 0,
+  editing: false
+};
+
+const $ = id => document.getElementById(id);
+const nf = (min, max) => new Intl.NumberFormat('ko-KR', { minimumFractionDigits: min, maximumFractionDigits: max });
+
+function flag(code) {
+  if (!/^[A-Z]{3}$/.test(code) || code.startsWith('X')) return '💱';
+  return String.fromCodePoint(...[...code.slice(0, 2)].map(c => 0x1F1E6 + c.charCodeAt(0) - 65));
+}
+function nameOf(code) { return KO_NAMES[code] || state.currencies[code]?.name || code; }
+
+function rateDigits(v) {
+  const a = Math.abs(v);
+  if (a >= 100) return 2;
+  if (a >= 1) return 4;
+  if (a >= 0.01) return 5;
+  return 7;
+}
+function fmtRate(v) { const d = rateDigits(v); return nf(Math.min(d, 2), d).format(v); }
+function currencyDigits(code) {
+  try { return new Intl.NumberFormat('ko-KR', { style: 'currency', currency: code }).resolvedOptions().maximumFractionDigits; }
+  catch { return 2; }
+}
+function fmtAmount(v, code) {
+  const d = Math.abs(v) < 1 && v !== 0 ? Math.max(currencyDigits(code), 4) : currencyDigits(code);
+  return nf(0, d).format(v);
+}
+function fmtDate(s, withYear) {
+  const [y, m, d] = s.split('-').map(Number);
+  return withYear ? `${y}. ${m}. ${d}.` : `${m}월 ${d}일`;
+}
+function isoDaysAgo(n) {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+async function getJSON(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
+
+function showError(msg) {
+  const el = $('error');
+  el.textContent = msg || '';
+  el.style.display = msg ? 'block' : 'none';
+}
+
+// ---------- 통화 목록 ----------
+async function loadCurrencies() {
+  const list = await getJSON(`${API}/currencies`);
+  const cutoff = isoDaysAgo(30);
+  for (const c of list) if (c.end_date >= cutoff) state.currencies[c.iso_code] = c;
+  fillSelect($('baseSel'));
+  fillSelect($('quoteSel'));
+}
+function fillSelect(sel) {
+  const codes = Object.keys(state.currencies);
+  const optgroup = (label, list) => {
+    const g = document.createElement('optgroup');
+    g.label = label;
+    for (const code of list) {
+      const o = document.createElement('option');
+      o.value = code;
+      o.textContent = `${flag(code)} ${code} · ${nameOf(code)}`;
+      g.appendChild(o);
+    }
+    return g;
+  };
+  sel.replaceChildren(
+    optgroup('자주 쓰는 통화', POPULAR.filter(c => state.currencies[c])),
+    optgroup('전체 통화', codes.filter(c => !POPULAR.includes(c)).sort())
+  );
+}
+
+// ---------- 현재 통화쌍 ----------
+function renderPairHeader() {
+  for (const side of ['base', 'quote']) {
+    const code = state[side];
+    $(side + 'Flag').textContent = flag(code);
+    $(side + 'Code').textContent = code;
+    $(side + 'Name').textContent = nameOf(code);
+    $(side + 'Sel').value = code;
+  }
+  $('calcBaseCode').textContent = state.base;
+  $('calcQuoteCode').textContent = state.quote;
+  $('rateUnit').textContent = `${unitOf(state.base)} ${state.base} =`;
+  const on = state.favs.some(([b, q]) => b === state.base && q === state.quote);
+  $('star').classList.toggle('on', on);
+  $('star').setAttribute('aria-pressed', on);
+}
+
+// mode: 'full' = ▲ 1.23 (+0.10%), 'pct' = ▲ 0.10%, 'stack' = 두 줄
+function deltaHTML(cur, prev, mode = 'full') {
+  if (prev == null) return '';
+  const diff = cur - prev;
+  const pctText = nf(2, 2).format(Math.abs(prev ? diff / prev * 100 : 0)) + '%';
+  if (Math.abs(diff) < 1e-12) return mode === 'pct' ? '– 0.00%' : '– 0';
+  const up = diff > 0;
+  const arrow = `<span class="${up ? 'arrow-up' : 'arrow-down'}">${up ? '▲' : '▼'}</span>`;
+  const sign = up ? '+' : '−';
+  if (mode === 'pct') return `${arrow} ${pctText}`;
+  if (mode === 'stack') return `${arrow} ${fmtRate(Math.abs(diff))}<br><span class="sub">${sign}${pctText}</span>`;
+  return `${arrow} ${fmtRate(Math.abs(diff))} (${sign}${pctText})`;
+}
+
+async function loadPair() {
+  const { base, quote } = state;
+  renderPairHeader();
+  if (base === quote) {
+    state.series = [];
+    $('rateBig').textContent = '1';
+    $('rateDelta').textContent = '같은 통화예요';
+    renderCalc('base');
+    renderChart();
+    return;
+  }
+  $('rateBig').textContent = '–';
+  $('rateDelta').textContent = '';
+  const rows = await getJSON(`${API}/rates?base=${base}&quotes=${quote}&from=${isoDaysAgo(366)}`);
+  if (state.base !== base || state.quote !== quote) return; // 그사이 다른 통화로 바뀜
+  state.series = rows.map(r => ({ date: r.date, rate: r.rate * unitOf(base) }));
+  const n = state.series.length;
+  const last = state.series[n - 1];
+  const prev = state.series[n - 2];
+  $('rateBig').innerHTML = `${fmtRate(last.rate)}<small>${quote}</small>`;
+  $('rateDelta').innerHTML = deltaHTML(last.rate, prev?.rate) + ' <span style="color:var(--text-muted)">전일 대비</span>';
+  $('asof').textContent = `${fmtDate(last.date)} 기준`;
+  renderCalc('base');
+  renderChart();
+}
+
+function currentRate() {
+  if (state.base === state.quote) return 1;
+  const last = state.series.at(-1);
+  return last && last.rate / unitOf(state.base);
+}
+
+// ---------- 계산기 ----------
+function parseNum(s) { const v = parseFloat(String(s).replace(/,/g, '')); return isFinite(v) ? v : null; }
+
+// 입력 중 콤마를 넣으면서 커서 위치(앞쪽 숫자 개수 기준)를 유지한다
+function formatTyping(input) {
+  const raw = input.value;
+  const caret = input.selectionStart ?? raw.length;
+  const digitsBefore = raw.slice(0, caret).replace(/[^0-9.]/g, '').length;
+  let clean = raw.replace(/[^0-9.]/g, '');
+  const dot = clean.indexOf('.');
+  if (dot !== -1) clean = clean.slice(0, dot + 1) + clean.slice(dot + 1).replace(/\./g, '');
+  const [int, frac] = clean.split('.');
+  const intFmt = int ? Number(int).toLocaleString('ko-KR') : (frac !== undefined ? '0' : '');
+  const out = frac !== undefined ? `${intFmt}.${frac}` : intFmt;
+  input.value = out;
+  let pos = 0, seen = 0;
+  while (pos < out.length && seen < digitsBefore) { if (/[0-9.]/.test(out[pos])) seen++; pos++; }
+  input.setSelectionRange(pos, pos);
+}
+
+function renderCalc(from) {
+  const rate = currentRate();
+  if (rate == null) return;
+  if (from === 'base') {
+    const v = parseNum($('calcBase').value);
+    $('calcQuote').value = v == null ? '' : fmtAmount(v * rate, state.quote);
+  } else {
+    const v = parseNum($('calcQuote').value);
+    $('calcBase').value = v == null ? '' : fmtAmount(v / rate, state.base);
+  }
+}
+
+// ---------- 추이 그래프 ----------
+function niceStep(range, count) {
+  const raw = range / count;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const r = raw / mag;
+  return (r < 1.5 ? 1 : r < 3 ? 2 : r < 7 ? 5 : 10) * mag;
+}
+
+function visiblePoints() {
+  const from = isoDaysAgo(state.days);
+  return state.series.filter(p => p.date >= from);
+}
+
+function renderChart() {
+  for (const b of $('ranges').children) b.setAttribute('aria-pressed', Number(b.dataset.days) === state.days);
+  const svg = $('chart');
+  const pts = visiblePoints();
+  $('tip').style.display = 'none';
+  if (pts.length < 2) {
+    svg.innerHTML = '';
+    for (const id of ['stHigh', 'stLow', 'stChange']) $(id).textContent = '–';
+    $('dailyTable').innerHTML = '';
+    return;
+  }
+
+  // 위쪽 40px은 터치할 때 뜨는 툴팁 자리
+  const W = svg.clientWidth || 340, H = 236;
+  const pad = { l: 4, r: 52, t: 48, b: 22 };
+  const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+  const rates = pts.map(p => p.rate);
+  let lo = Math.min(...rates), hi = Math.max(...rates);
+  if (hi === lo) { hi += Math.abs(hi) * 0.001 || 1; lo -= Math.abs(lo) * 0.001 || 1; }
+  const step = niceStep(hi - lo, 3);
+  const y0 = Math.floor(lo / step) * step, y1 = Math.ceil(hi / step) * step;
+  const x = i => pad.l + i / (pts.length - 1) * pw;
+  const y = v => pad.t + (1 - (v - y0) / (y1 - y0)) * ph;
+  const tickDigits = Math.max(0, -Math.floor(Math.log10(step)));
+
+  let grid = '';
+  for (let v = y0; v <= y1 + step / 2; v += step) {
+    grid += `<line x1="${pad.l}" x2="${pad.l + pw}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)" stroke-width="1"/>`;
+    grid += `<text class="axis-label" x="${W - 2}" y="${y(v) + 4}" text-anchor="end">${nf(tickDigits, tickDigits).format(v)}</text>`;
+  }
+  const xl = `<text class="axis-label" x="${pad.l}" y="${H - 4}">${fmtDate(pts[0].date)}</text>`
+           + `<text class="axis-label" x="${pad.l + pw}" y="${H - 4}" text-anchor="end">${fmtDate(pts.at(-1).date)}</text>`;
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.rate).toFixed(1)}`).join('');
+  const area = `${line}L${x(pts.length - 1).toFixed(1)},${pad.t + ph}L${pad.l},${pad.t + ph}Z`;
+
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = `
+    <defs><linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="var(--series)" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="var(--series)" stop-opacity="0"/>
+    </linearGradient></defs>
+    ${grid}${xl}
+    <path d="${area}" fill="url(#fill)"/>
+    <path d="${line}" fill="none" stroke="var(--series)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <g id="cross" style="display:none">
+      <line id="crossLine" y1="${pad.t}" y2="${pad.t + ph}" stroke="var(--text-muted)" stroke-width="1" stroke-dasharray="3 3"/>
+      <circle id="crossDot" r="5" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>
+    </g>
+    <circle cx="${x(pts.length - 1)}" cy="${y(pts.at(-1).rate)}" r="4" fill="var(--series)" stroke="var(--card)" stroke-width="2"/>`;
+  svg._geom = { pts, x, y, pad, pw, W };
+
+  const first = pts[0].rate, last = pts.at(-1).rate;
+  $('stHigh').textContent = fmtRate(Math.max(...rates));
+  $('stLow').textContent = fmtRate(Math.min(...rates));
+  $('stChange').innerHTML = deltaHTML(last, first, 'stack');
+  $('dailyTable').innerHTML = pts.slice().reverse()
+    .map(p => `<tr><td>${fmtDate(p.date, true)}</td><td>${fmtRate(p.rate)}</td></tr>`).join('');
+}
+
+function showCross(clientX) {
+  const svg = $('chart');
+  const g = svg._geom;
+  if (!g) return;
+  const rect = svg.getBoundingClientRect();
+  const sx = (clientX - rect.left) * (g.W / rect.width);
+  const i = Math.max(0, Math.min(g.pts.length - 1, Math.round((sx - g.pad.l) / g.pw * (g.pts.length - 1))));
+  const p = g.pts[i];
+  const cx = g.x(i), cy = g.y(p.rate);
+  $('cross').style.display = '';
+  $('crossLine').setAttribute('x1', cx);
+  $('crossLine').setAttribute('x2', cx);
+  $('crossDot').setAttribute('cx', cx);
+  $('crossDot').setAttribute('cy', cy);
+  const tip = $('tip');
+  tip.innerHTML = `${fmtDate(p.date, true)}<br><b>${fmtRate(p.rate)}</b>`;
+  tip.style.display = 'block';
+  const px = cx * rect.width / g.W;
+  const half = tip.offsetWidth / 2;
+  tip.style.left = Math.max(half, Math.min(rect.width - half, px)) + 'px';
+}
+function hideCross() {
+  $('tip').style.display = 'none';
+  const c = document.getElementById('cross');
+  if (c) c.style.display = 'none';
+}
+
+// ---------- 즐겨찾기 ----------
+async function loadFavs() {
+  const box = $('favs');
+  box.classList.toggle('editing', state.editing);
+  $('editFavs').textContent = state.editing ? '완료' : '편집';
+  if (!state.favs.length) {
+    box.innerHTML = '<div class="empty">통화쌍 오른쪽의 ★를 눌러 추가하세요</div>';
+    return;
+  }
+  // 같은 기준 통화끼리 묶어 한 번에 요청한다
+  const byBase = {};
+  for (const [b, q] of state.favs) (byBase[b] ||= []).push(q);
+  const latest = {};
+  await Promise.all(Object.entries(byBase).map(async ([b, qs]) => {
+    const rows = await getJSON(`${API}/rates?base=${b}&quotes=${qs.join(',')}&from=${isoDaysAgo(7)}`);
+    for (const r of rows) (latest[`${b}/${r.quote}`] ||= []).push(r.rate * unitOf(b));
+  }));
+  renderFavs(latest);
+}
+
+function renderFavs(latest) {
+  const box = $('favs');
+  box.innerHTML = '';
+  state.favs.forEach(([b, q], idx) => {
+    const list = latest[`${b}/${q}`] || [];
+    const cur = list.at(-1), prev = list.at(-2);
+    const row = document.createElement('div');
+    row.className = 'fav';
+    row.innerHTML = `
+      <button class="del" aria-label="${b} → ${q} 삭제">−</button>
+      <span class="flags">${flag(b)}</span>
+      <span class="pname"><b>${unitOf(b) > 1 ? unitOf(b) + ' ' : ''}${b} → ${q}</b><span>${nameOf(b)} → ${nameOf(q)}</span></span>
+      <span class="pval num"><b>${cur != null ? fmtRate(cur) : '–'}</b><span>${cur != null ? deltaHTML(cur, prev, 'pct') : ''}</span></span>`;
+    row.querySelector('.del').addEventListener('click', e => {
+      e.stopPropagation();
+      state.favs.splice(idx, 1);
+      store.set('fx.favs', state.favs);
+      renderPairHeader();
+      if (state.favs.length) renderFavs(latest); else loadFavs();
+    });
+    row.addEventListener('click', () => {
+      if (state.editing) return;
+      setPair(b, q);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    box.appendChild(row);
+  });
+}
+
+// ---------- 동작 ----------
+function setPair(base, quote) {
+  state.base = base;
+  state.quote = quote;
+  store.set('fx.base', base);
+  store.set('fx.quote', quote);
+  $('calcBase').value = unitOf(base);
+  run(loadPair);
+}
+
+async function run(fn) {
+  try { showError(''); await fn(); }
+  catch (e) { showError('환율을 불러오지 못했어요. 인터넷 연결을 확인하고 새로고침해 주세요.'); console.error(e); }
+}
+
+async function refreshAll() {
+  const btn = $('refresh');
+  btn.classList.add('spin');
+  await run(async () => {
+    if (!Object.keys(state.currencies).length) await loadCurrencies();
+    await Promise.all([loadPair(), loadFavs()]);
+    state.lastLoad = Date.now();
+  });
+  btn.classList.remove('spin');
+}
+
+$('baseSel').addEventListener('change', e => setPair(e.target.value, state.quote));
+$('quoteSel').addEventListener('change', e => setPair(state.base, e.target.value));
+$('swap').addEventListener('click', () => setPair(state.quote, state.base));
+$('refresh').addEventListener('click', refreshAll);
+
+$('star').addEventListener('click', () => {
+  const i = state.favs.findIndex(([b, q]) => b === state.base && q === state.quote);
+  if (i === -1) state.favs.push([state.base, state.quote]); else state.favs.splice(i, 1);
+  store.set('fx.favs', state.favs);
+  renderPairHeader();
+  run(loadFavs);
+});
+$('editFavs').addEventListener('click', () => {
+  state.editing = !state.editing;
+  $('favs').classList.toggle('editing', state.editing);
+  $('editFavs').textContent = state.editing ? '완료' : '편집';
+});
+
+$('calcBase').addEventListener('input', e => { formatTyping(e.target); renderCalc('base'); });
+$('calcQuote').addEventListener('input', e => { formatTyping(e.target); renderCalc('quote'); });
+for (const id of ['calcBase', 'calcQuote']) $(id).addEventListener('focus', e => e.target.select());
+
+$('ranges').addEventListener('click', e => {
+  const days = Number(e.target.dataset.days);
+  if (!days) return;
+  state.days = days;
+  store.set('fx.days', days);
+  renderChart();
+});
+
+const wrap = $('chartWrap');
+wrap.addEventListener('pointerdown', e => showCross(e.clientX));
+wrap.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' || e.buttons) showCross(e.clientX); });
+wrap.addEventListener('pointerup', e => { if (e.pointerType !== 'mouse') hideCross(); });
+wrap.addEventListener('pointercancel', hideCross);
+wrap.addEventListener('pointerleave', hideCross);
+
+let resizeTimer;
+window.addEventListener('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(renderChart, 150); });
+
+// 홈 화면 앱은 새로 열리지 않고 다시 보이기만 하므로, 10분이 지났으면 새로 받는다
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && Date.now() - state.lastLoad > 10 * 60 * 1000) refreshAll();
+});
+
+if (!RANGES.includes(state.days)) state.days = 30;
+$('calcBase').value = unitOf(state.base);
+renderPairHeader();
+refreshAll();
+</script>
+</body>
+</html>
