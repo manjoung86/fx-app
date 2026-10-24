@@ -1,0 +1,12 @@
+name = "fx-rates"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+
+# 매시 5분에 Open Exchange Rates에서 새 환율을 받아 KV에 저장
+[triggers]
+crons = ["5 * * * *"]
+
+# id는 `wrangler kv namespace create RATES` 결과로 채운다
+[[kv_namespaces]]
+binding = "RATES"
+id = "REPLACE_WITH_KV_ID"

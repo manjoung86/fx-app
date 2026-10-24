@@ -260,6 +260,8 @@
 
 <script>
 const API = 'https://api.frankfurter.dev/v2';
+// 1시간마다 갱신되는 최신 환율 중계 서버 (worker/ 폴더). 비어 있거나 실패하면 일별 기준환율만 쓴다
+const LIVE_API = '';
 const RANGES = [7, 30, 90, 180, 365, 730];
 
 const KO_NAMES = {
@@ -411,17 +413,58 @@ async function loadPair() {
   }
   $('rateBig').textContent = '–';
   $('rateDelta').textContent = '';
-  const rows = await getJSON(`${API}/rates?base=${base}&quotes=${quote}&from=${isoDaysAgo(731)}`);
+  const [rows, live] = await Promise.all([
+    getJSON(`${API}/rates?base=${base}&quotes=${quote}&from=${isoDaysAgo(731)}`),
+    getLive()
+  ]);
   if (state.base !== base || state.quote !== quote) return; // 그사이 다른 통화로 바뀜
   state.series = rows.map(r => ({ date: r.date, rate: r.rate * unitOf(base) }));
+  const lr = live && liveRate(live, base, quote);
+  if (lr) mergeLive(state.series, lr * unitOf(base), live.timestamp);
   const n = state.series.length;
   const last = state.series[n - 1];
   const prev = state.series[n - 2];
   $('rateBig').innerHTML = `${fmtRate(last.rate)}<small>${quote}</small>`;
   $('rateDelta').innerHTML = deltaHTML(last.rate, prev?.rate) + ' <span style="color:var(--text-muted)">전일 대비</span>';
-  $('asof').textContent = `${fmtDate(last.date)} 기준`;
+  $('asof').textContent = lr ? `${fmtDateTime(live.timestamp * 1000)} 기준` : `${fmtDate(last.date)} 기준`;
   renderCalc('base');
   renderChart();
+}
+
+// ---------- 1시간 단위 최신 환율 ----------
+let liveCache = null;
+async function getLive() {
+  if (!LIVE_API) return null;
+  if (liveCache && Date.now() - liveCache.at < 5 * 60 * 1000) return liveCache.data;
+  try {
+    const data = await getJSON(LIVE_API);
+    if (!data.rates) return null;
+    liveCache = { at: Date.now(), data };
+    return data;
+  } catch {
+    return null; // 중계 서버가 안 돼도 일별 기준환율로 계속 동작
+  }
+}
+
+// 응답은 USD 기준이라 두 통화의 USD 환율로 교차 환율을 구한다
+function liveRate(live, base, quote) {
+  const b = base === live.base ? 1 : live.rates[base];
+  const q = quote === live.base ? 1 : live.rates[quote];
+  return b && q ? q / b : null;
+}
+
+// 일별 시계열의 마지막 날을 최신 값으로 바꾸거나, 오늘 날짜가 없으면 덧붙인다
+function mergeLive(series, rate, timestamp) {
+  const d = new Date(timestamp * 1000);
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const last = series.at(-1);
+  if (last && last.date >= date) last.rate = rate;
+  else series.push({ date, rate });
+}
+
+function fmtDateTime(ms) {
+  const d = new Date(ms);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
 function currentRate() {
@@ -573,10 +616,20 @@ async function loadFavs() {
   const byBase = {};
   for (const [b, q] of state.favs) (byBase[b] ||= []).push(q);
   const latest = {};
-  await Promise.all(Object.entries(byBase).map(async ([b, qs]) => {
-    const rows = await getJSON(`${API}/rates?base=${b}&quotes=${qs.join(',')}&from=${isoDaysAgo(7)}`);
-    for (const r of rows) (latest[`${b}/${r.quote}`] ||= []).push(r.rate * unitOf(b));
-  }));
+  const [, live] = await Promise.all([
+    Promise.all(Object.entries(byBase).map(async ([b, qs]) => {
+      const rows = await getJSON(`${API}/rates?base=${b}&quotes=${qs.join(',')}&from=${isoDaysAgo(7)}`);
+      for (const r of rows) (latest[`${b}/${r.quote}`] ||= []).push({ date: r.date, rate: r.rate * unitOf(b) });
+    })),
+    getLive()
+  ]);
+  if (live) {
+    for (const [b, q] of state.favs) {
+      const lr = liveRate(live, b, q);
+      const list = latest[`${b}/${q}`];
+      if (lr && list?.length) mergeLive(list, lr * unitOf(b), live.timestamp);
+    }
+  }
   renderFavs(latest);
 }
 
@@ -585,7 +638,7 @@ function renderFavs(latest) {
   box.innerHTML = '';
   state.favs.forEach(([b, q], idx) => {
     const list = latest[`${b}/${q}`] || [];
-    const cur = list.at(-1), prev = list.at(-2);
+    const cur = list.at(-1)?.rate, prev = list.at(-2)?.rate;
     const row = document.createElement('div');
     row.className = 'fav';
     row.innerHTML = `

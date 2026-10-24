@@ -14,5 +14,15 @@
 - [x] 아이폰 크기에서 브라우저로 검증 (라이트·다크 모드)
 - [x] 아이폰에 올릴 방법 결정과 배포 (GitHub Pages)
 - [x] 아이폰 Safari에서 실제 화면 확인 (사용자, 10-24)
+## 1시간 단위 최신 환율 (Open Exchange Rates + Cloudflare Workers)
+- [x] 무료 API 조사와 방식 결정
+- [x] 중계 서버 코드 (`worker/`), 시험 빌드, 가짜 키로 오류·Origin 처리 확인
+- [x] 앱 연결 코드 (`LIVE_API`), 가짜 응답·실패 상황 시험
+- [ ] Open Exchange Rates 가입·App ID 발급 (사용자)
+- [ ] Cloudflare 가입 (사용자)
+- [ ] wrangler 로그인, KV 생성, 키 등록, 배포
+- [ ] `LIVE_API`에 Worker 주소 넣고 실제 값 확인 후 배포
+
+## 기존
 - [x] 아이폰 홈 화면에 아이콘 추가 (iPhone 미러링으로 진행, 웹 앱으로 열기 켬, 주소창 없이 열리는 것 확인)
 - [x] 아이폰 Safari에서 계산기 입력칸이 카드 밖으로 넘치던 문제 수정
