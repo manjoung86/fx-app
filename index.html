@@ -127,7 +127,7 @@
   .calc input { flex: 1; width: 100%; min-width: 0; border: 0; padding: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 20px; font-weight: 600; text-align: right; outline: none; font-variant-numeric: tabular-nums; }
 
   /* 기간 선택 */
-  .seg { display: grid; grid-template-columns: repeat(6, 1fr); background: var(--field); border-radius: 10px; padding: 2px; margin-top: 12px; }
+  .seg { display: grid; grid-template-columns: repeat(7, 1fr); background: var(--field); border-radius: 10px; padding: 2px; margin-top: 8px; }
   .seg button { height: 32px; border-radius: 8px; font-size: 14px; color: var(--text-secondary); }
   .seg button[aria-pressed="true"] { background: var(--card); color: var(--text-primary); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.12); }
 
@@ -142,7 +142,8 @@
   .chart-date { font-size: 13px; color: var(--text-muted); margin-top: 2px; min-height: 18px; }
   /* 그래프는 카드 좌우 여백을 넘어 카드 끝까지 채운다 */
   .chart-wrap { position: relative; margin: 0 -16px; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
-  .chart-wrap svg { display: block; width: 100%; height: 240px; overflow: visible; }
+  /* 아이폰 첫 화면에 기간 버튼까지 보이도록 낮게 */
+  .chart-wrap svg { display: block; width: 100%; height: 170px; overflow: visible; }
   .tip { position: absolute; top: 0; transform: translate(-50%, -100%); background: var(--text-primary); color: var(--card); border-radius: 8px; padding: 4px 8px; font-size: 12px; white-space: nowrap; pointer-events: none; display: none; text-align: center; line-height: 1.3; }
   .tip b { font-size: 14px; }
   .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
@@ -235,6 +236,7 @@
       <div class="tip" id="tip"></div>
     </div>
     <div class="seg" id="ranges">
+      <button data-days="1">1일</button>
       <button data-days="7">1주</button>
       <button data-days="30">1달</button>
       <button data-days="90">3달</button>
@@ -247,7 +249,7 @@
       <div><span>기간 최저</span><b id="stLow">–</b></div>
     </div>
     <details>
-      <summary>날짜별 환율 보기</summary>
+      <summary>목록으로 보기</summary>
       <div class="daily"><table class="num" id="dailyTable"></table></div>
     </details>
   </section>
@@ -262,7 +264,7 @@
 const API = 'https://api.frankfurter.dev/v2';
 // 1시간마다 갱신되는 최신 환율 중계 서버 (worker/ 폴더). 비어 있거나 실패하면 일별 기준환율만 쓴다
 const LIVE_API = 'https://fx-rates.fx-rates-worker.workers.dev/';
-const RANGES = [7, 30, 90, 180, 365, 730];
+const RANGES = [1, 7, 30, 90, 180, 365, 730];
 
 const KO_NAMES = {
   KRW: '대한민국 원', USD: '미국 달러', JPY: '일본 엔', EUR: '유로', CNY: '중국 위안', GBP: '영국 파운드',
@@ -291,7 +293,8 @@ const state = {
   days: store.get('fx.days', 30),
   favs: store.get('fx.favs', DEFAULT_FAVS),
   currencies: {},
-  series: [],        // 현재 통화쌍의 1년치 [{date, rate}]
+  series: [],        // 현재 통화쌍의 2년치 일별 [{date, rate}]
+  hourly: [],        // 현재 통화쌍의 최근 시간별 [{ts, rate}] (1일 그래프용)
   lastLoad: 0,
   editing: false
 };
@@ -405,6 +408,7 @@ async function loadPair() {
   renderPairHeader();
   if (base === quote) {
     state.series = [];
+    state.hourly = [];
     $('rateBig').textContent = '1';
     $('rateDelta').textContent = '같은 통화예요';
     renderCalc('base');
@@ -413,12 +417,14 @@ async function loadPair() {
   }
   $('rateBig').textContent = '–';
   $('rateDelta').textContent = '';
-  const [rows, live] = await Promise.all([
+  const [rows, live, hourly] = await Promise.all([
     getJSON(`${API}/rates?base=${base}&quotes=${quote}&from=${isoDaysAgo(731)}`),
-    getLive()
+    getLive(),
+    getHourly(base, quote)
   ]);
   if (state.base !== base || state.quote !== quote) return; // 그사이 다른 통화로 바뀜
   state.series = rows.map(r => ({ date: r.date, rate: r.rate * unitOf(base) }));
+  state.hourly = hourly.map(h => ({ ts: h.t * 1000, rate: h.rate * unitOf(base) }));
   const lr = live && liveRate(live, base, quote);
   if (lr) mergeLive(state.series, lr * unitOf(base), live.timestamp);
   const n = state.series.length;
@@ -443,6 +449,17 @@ async function getLive() {
     return data;
   } catch {
     return null; // 중계 서버가 안 돼도 일별 기준환율로 계속 동작
+  }
+}
+
+// 중계 서버가 매시간 쌓아 둔 기록 (최근 48시간). 실패하면 빈 배열
+async function getHourly(base, quote) {
+  if (!LIVE_API) return [];
+  try {
+    const rows = await getJSON(`${LIVE_API}history?base=${base}&quote=${quote}`);
+    return Array.isArray(rows) ? rows : [];
+  } catch {
+    return [];
   }
 }
 
@@ -507,8 +524,17 @@ function renderCalc(from) {
 
 // ---------- 추이 그래프 ----------
 function visiblePoints() {
+  if (state.days === 1) {
+    const from = Date.now() - 24 * 3600 * 1000;
+    return state.hourly.filter(p => p.ts >= from);
+  }
   const from = isoDaysAgo(state.days);
   return state.series.filter(p => p.date >= from);
+}
+
+// 시간별 점은 "10월 24일 21:00", 일별 점은 "2026. 10. 24."
+function ptLabel(p) {
+  return p.ts ? fmtDateTime(p.ts) : fmtDate(p.date, true);
 }
 
 function renderChart() {
@@ -522,12 +548,15 @@ function renderChart() {
     svg._geom = null;
     for (const id of ['stHigh', 'stLow', 'chartValue']) $(id).textContent = '–';
     for (const id of ['chartChange', 'chartDate', 'dailyTable']) $(id).innerHTML = '';
+    if (state.days === 1 && LIVE_API) {
+      $('chartDate').textContent = `시간별 기록을 모으는 중이에요 (지금 ${pts.length}개). 매시간 쌓여서 하루 뒤부터 다 보여요.`;
+    }
     return;
   }
 
   // 축·눈금 없이 선과 면만 그린다. 위쪽 여백은 터치 툴팁 자리
-  const W = svg.clientWidth || 360, H = 240;
-  const pad = { l: 6, r: 6, t: 56, b: 10 };
+  const W = svg.clientWidth || 360, H = 170;
+  const pad = { l: 6, r: 6, t: 46, b: 8 };
   const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
   const rates = pts.map(p => p.rate);
   const lo = Math.min(...rates), hi = Math.max(...rates);
@@ -555,7 +584,7 @@ function renderChart() {
   $('stHigh').textContent = fmtRate(hi);
   $('stLow').textContent = fmtRate(lo);
   $('dailyTable').innerHTML = pts.slice().reverse()
-    .map(p => `<tr><td>${fmtDate(p.date, true)}</td><td>${fmtRate(p.rate)}</td></tr>`).join('');
+    .map(p => `<tr><td>${ptLabel(p)}</td><td>${fmtRate(p.rate)}</td></tr>`).join('');
   renderChartHead();
 }
 
@@ -568,8 +597,8 @@ function renderChartHead(i) {
   $('chartValue').textContent = fmtRate(p.rate);
   $('chartChange').innerHTML = deltaHTML(p.rate, pts[0].rate, 'pct');
   $('chartDate').textContent = i == null
-    ? `${fmtDate(pts[0].date, true)} – ${fmtDate(pts.at(-1).date, true)}`
-    : fmtDate(p.date, true);
+    ? `${ptLabel(pts[0])} – ${ptLabel(pts.at(-1))}`
+    : ptLabel(p);
 }
 
 function showCross(clientX) {
@@ -588,7 +617,7 @@ function showCross(clientX) {
   $('crossDot').setAttribute('cy', cy);
   // 툴팁은 짚은 점 바로 위에 띄운다
   const tip = $('tip');
-  tip.innerHTML = `${fmtDate(p.date, true)}<br><b>${fmtRate(p.rate)}</b>`;
+  tip.innerHTML = `${ptLabel(p)}<br><b>${fmtRate(p.rate)}</b>`;
   tip.style.display = 'block';
   const scale = rect.width / g.W;
   const half = tip.offsetWidth / 2;
